@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QRShield QR Code Safety Scanner</title>
+  <link rel="stylesheet" href="/style.css" />
+  <script src="https://unpkg.com/jsqr/dist/jsQR.js"></script>
+</head>
+<body>
+
+  <!-- ===================== HEADER ===================== -->
+  <header class="site-header">
+    <div class="logo">
+      <span class="shield-icon">🛡️</span>
+      <span class="logo-text">QRShield</span>
+    </div>
+  </header>
+
+  <!-- ===================== MAIN CONTENT ===================== -->
+  <main class="container">
+
+    <!-- Welcome Hero -->
+    <section class="intro-card">
+      <p>
+        QRShield decodes QR codes locally and checks them for phishing links,
+        malicious files, and suspicious patterns. No data ever leaves your device.
+      </p>
+      <div class="intro-highlights">
+        <span>⚡ Instant scanning</span>
+        
+        <span>🛡️ Threat insights</span>
+      </div>
+    </section>
+
+  
+
+    <section class="upload-card">
+      <div class="upload-grid">
+        <div class="dashboard-column">
+          <div class="dashboard-card">
+            <div class="dashboard-insight" id="dashboardInsight">
+              Scan a QR code to evaluate suspicious links, fake login patterns, and dangerous downloads.
+            </div>
+
+            <div class="live-checks" id="liveChecks">
+              <div class="live-check-item">
+                <span class="live-check-label">URL Inspection</span>
+                <span class="live-check-value" id="checkUrl">Waiting</span>
+              </div>
+              <div class="live-check-item">
+                <span class="live-check-label">Phishing Pattern Scan</span>
+                <span class="live-check-value" id="checkPhish">Waiting</span>
+              </div>
+              <div class="live-check-item">
+                <span class="live-check-label">Dangerous File Check</span>
+                <span class="live-check-value" id="checkFiles">Waiting</span>
+              </div>
+            </div>
+
+            <div class="risk-meter-card">
+              <div class="risk-meter-header">
+                <span class="risk-meter-label">Risk Meter</span>
+                <span class="risk-meter-value" id="riskMeterValue">0%</span>
+              </div>
+              <div class="risk-meter-bar">
+                <div class="risk-meter-fill" id="riskMeterFill"></div>
+              </div>
+              <p class="risk-meter-text" id="riskMeterText">No scan performed yet.</p>
+            </div>
+
+            <section class="why-card">
+              <h2>Why QRShield?</h2>
+              <p class="why-description">
+                A privacy-first QR security check that helps you understand a code before you open it.
+              </p>
+              <div class="why-grid">
+                <div class="why-item">
+                  <strong>Open Source</strong>
+                  <span>Transparent, inspectable detection rules.</span>
+                </div>
+                <div class="why-item">
+                  <strong>Fast Analysis</strong>
+                  <span>Results in seconds with local scanning.</span>
+                </div>
+                <div class="why-item">
+                  <strong>Threat Signals</strong>
+                  <span>Flags phishing patterns and risky files.</span>
+                </div>
+                <div class="why-item">
+                  <strong>Privacy Focused</strong>
+                  <span>Your QR content stays on your device.</span>
+                </div>
+              </div>
+              <div class="why-guidance">
+                <div class="why-guidance-heading">Before you open a QR code</div>
+                <div class="why-guidance-row">
+                  <strong>1</strong>
+                  <span>Review the risk score and detected destination.</span>
+                </div>
+                <div class="why-guidance-row">
+                  <strong>2</strong>
+                  <span>Check the flagged patterns and recommendation.</span>
+                </div>
+                <div class="why-guidance-row">
+                  <strong>3</strong>
+                  <span>Only continue when the source and destination are trusted.</span>
+                </div>
+              </div>
+            </section>
+
+          </div>
+        </div>
+
+        <div class="upload-column">
+          <div class="upload-panel">
+            <h2>Upload a QR Code Image</h2>
+            <div class="upload-area" id="uploadArea">
+              <input type="file" id="qrFileInput" accept=".png,.jpg,.jpeg,.bmp,.webp" hidden />
+              <label for="qrFileInput" class="upload-label">
+                <span class="upload-icon">📤</span>
+                <span>Click to choose an image or drag it here</span>
+              </label>
+            </div>
+          </div>
+
+        
+
+          <div class="camera-panel">
+            <span class="scan-frame-label camera-instruction">Keep QR code inside the frame</span>
+            <div class="camera-stage">
+              <video id="cameraFeed" autoplay playsinline muted></video>
+              <div class="scan-overlay" id="scanOverlay"></div>
+            </div>
+            <canvas id="cameraCanvas" hidden></canvas>
+
+            <div class="live-indicator" id="liveIndicator">
+              <span class="live-dot"></span>
+              <span class="live-text">Camera ready</span>
+            </div>
+
+            <div class="button-row camera-buttons">
+              <button id="startCameraBtn" class="btn btn-primary">Start Camera Scan</button>
+              <button id="stopCameraBtn" class="btn btn-secondary" disabled>Stop Camera</button>
+            </div>
+
+            <p class="camera-help">Point your camera at a QR code and it will scan automatically.</p>
+          </div>
+
+          <div class="preview-wrapper" id="previewWrapper" style="display: none;">
+            <h3>QR Preview</h3>
+
+            <div class="preview-card">
+              <img id="imagePreview" alt="QR Code Preview" />
+
+              <div class="preview-details">
+                <p><strong>File:</strong> <span id="fileName"></span></p>
+                <p><strong>Size:</strong> <span id="fileSize"></span></p>
+                <p><strong>Resolution:</strong> <span id="fileResolution"></span></p>
+              </div>
+            </div>
+          </div>
+
+          <div class="button-row">
+            <button id="scanBtn" class="btn btn-primary" disabled>Scan QR Code</button>
+            <button id="clearBtn" class="btn btn-secondary" disabled>Clear</button>
+          </div>
+          <div id="cameraError" class="camera-error" style="display: none;"></div>
+
+          <div class="spinner" id="loadingSpinner" style="display: none;">
+            <div class="spinner-circle"></div>
+            <p>Scanning QR code...</p>
+          </div>
+
+          <div class="error-box" id="errorBox" style="display: none;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Results Section -->
+    <section class="result-card" id="resultCard" style="display: none;">
+      <h2>Scan Results</h2>
+
+      <div class="status-banner" id="statusBanner">
+        <span class="threat-badge threat-safe" id="statusBadge">🟢 SAFE</span>
+        <span id="statusText">Safe</span>
+      </div>
+
+      <div class="result-grid">
+        <div class="result-item">
+          <span class="result-label">QR Type</span>
+          <span class="result-value" id="qrType">-</span>
+        </div>
+        <div class="result-item">
+          <span class="result-label">Risk Score</span>
+          <span class="result-value" id="riskScore">-</span>
+        </div>
+        <div class="result-item">
+          <span class="result-label">Threat Level</span>
+          <span class="result-value" id="threatLevel">-</span>
+        </div>
+        <div class="result-item full-width">
+          <span class="result-label">Decoded Content</span>
+          <span class="result-value break-text" id="decodedContent">-</span>
+        </div>
+        <div class="result-item full-width" id="detectedUrlRow">
+          <span class="result-label">Detected URL</span>
+          <span class="result-value break-text" id="detectedUrl">-</span>
+        </div>
+        <div class="result-item full-width">
+          <span class="result-label">Reasons</span>
+          <ul class="reason-list" id="reasonList"></ul>
+        </div>
+        <div class="result-item full-width">
+          <span class="result-label">Recommendation</span>
+          <span class="result-value" id="recommendation">-</span>
+        </div>
+      </div>
+
+      <button id="scanAnotherBtn" class="btn btn-primary">Upload Another</button>
+    </section>
+
+  </main>
+
+  <!-- ===================== FOOTER ===================== -->
+
+  <!-- ===================== SCRIPT ===================== -->
+  <!-- All frontend logic lives here inline (no separate script.js file) -->
+  <script>
+    const themeToggle = document.getElementById("themeToggle");
+
+    function applyTheme(theme) {
+      document.body.classList.toggle("theme-dark", theme === "dark");
+      document.body.classList.toggle("theme-light", theme === "light");
+
+      if (themeToggle) {
+        const isDark = theme === "dark";
+        themeToggle.innerHTML = `<span class="theme-toggle-icon">${isDark ? "☀" : "🌙"}</span><span class="theme-toggle-text">${isDark ? "Light Mode" : "Dark Mode"}</span>`;
+        themeToggle.setAttribute("aria-pressed", String(isDark));
+      }
+
+      localStorage.setItem("qrshield-theme", theme);
+    }
+
+    const savedTheme = localStorage.getItem("qrshield-theme");
+    const preferredTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    applyTheme(savedTheme || preferredTheme);
+
+    if (themeToggle) {
+      themeToggle.addEventListener("click", () => {
+        const nextTheme = document.body.classList.contains("theme-dark") ? "light" : "dark";
+        applyTheme(nextTheme);
+      });
+    }
+
+    const passwordToggle = document.getElementById("passwordToggle");
+    const loginPassword = document.getElementById("loginPassword");
+
+    if (passwordToggle && loginPassword) {
+      passwordToggle.addEventListener("click", () => {
+        const isHidden = loginPassword.type === "password";
+        loginPassword.type = isHidden ? "text" : "password";
+        passwordToggle.textContent = isHidden ? "Hide" : "Show";
+      });
+    }
+
+    /* ---------- Grab all the elements we need ---------- */
+    const qrFileInput = document.getElementById("qrFileInput");
+    const uploadArea = document.getElementById("uploadArea");
+    const previewWrapper = document.getElementById("previewWrapper");
+    const imagePreview = document.getElementById("imagePreview");
+    const fileName = document.getElementById("fileName");
+    const fileSize = document.getElementById("fileSize");
+    const fileResolution = document.getElementById("fileResolution");
+    const cameraFeed = document.getElementById("cameraFeed");
+    const cameraCanvas = document.getElementById("cameraCanvas");
+    const scanOverlay = document.getElementById("scanOverlay");
+    const liveIndicator = document.getElementById("liveIndicator");
+    const startCameraBtn = document.getElementById("startCameraBtn");
+    const stopCameraBtn = document.getElementById("stopCameraBtn");
+
+    const scanBtn = document.getElementById("scanBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const scanAnotherBtn = document.getElementById("scanAnotherBtn");
+
+    const loadingSpinner = document.getElementById("loadingSpinner");
+    const errorBox = document.getElementById("errorBox");
+    const resultCard = document.getElementById("resultCard");
+
+    const statusBanner = document.getElementById("statusBanner");
+    const statusText = document.getElementById("statusText");
+    const qrType = document.getElementById("qrType");
+    const riskScore = document.getElementById("riskScore");
+    const threatLevel = document.getElementById("threatLevel");
+    const decodedContent = document.getElementById("decodedContent");
+    const detectedUrl = document.getElementById("detectedUrl");
+    const detectedUrlRow = document.getElementById("detectedUrlRow");
+    const reasonList = document.getElementById("reasonList");
+    const recommendation = document.getElementById("recommendation");
+    const dashboardInsight = document.getElementById("dashboardInsight");
+    const statusBadge = document.getElementById("statusBadge");
+    const checkUrl = document.getElementById("checkUrl");
+    const checkPhish = document.getElementById("checkPhish");
+    const checkFiles = document.getElementById("checkFiles");
+    const riskMeterValue = document.getElementById("riskMeterValue");
+    const riskMeterFill = document.getElementById("riskMeterFill");
+    const riskMeterText = document.getElementById("riskMeterText");
+    const dashboardPreview = document.getElementById("dashboardPreview");
+    const uploadSummaryCard = document.getElementById("uploadSummaryCard");
+    const uploadFilename = document.getElementById("uploadFilename");
+    const uploadResolution = document.getElementById("uploadResolution");
+    const uploadSize = document.getElementById("uploadSize");
+
+    let selectedFile = null;
+    let stream = null;
+    let cameraScanFrameId = null;
+    let cameraScanning = false;
+    let lastCameraDecoded = "";
+
+    const hiddenCanvas = document.createElement("canvas");
+    const hiddenContext = hiddenCanvas.getContext("2d");
+
+    const URL_SHORTENERS = [
+      "bit.ly", "tinyurl.com", "t.co", "goo.gl", "is.gd",
+      "cutt.ly", "tiny.one", "rebrandly.com", "shorte.st", "ow.ly"
+    ];
+
+    const FAKE_LOGIN_KEYWORDS = [
+      "login", "signin", "sign-in", "verify", "update", "secure",
+      "bank", "account", "wallet", "paypal", "otp", "password",
+      "authentication", "confirm", "billing", "unlock"
+    ];
+
+    const EXECUTABLE_EXTENSIONS = [
+      ".exe", ".apk", ".bat", ".scr", ".cmd", ".msi", ".zip", ".rar"
+    ];
+
+    /* ---------- Handle file selection ---------- */
+    qrFileInput.addEventListener("change", (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        handleNewFile(file);
+      }
+    });
+
+    /* ---------- Handle drag and drop onto the upload area ---------- */
+    uploadArea.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      uploadArea.classList.add("drag-active");
+    });
+
+    uploadArea.addEventListener("dragleave", (event) => {
+      event.preventDefault();
+      if (!uploadArea.contains(event.relatedTarget)) {
+        uploadArea.classList.remove("drag-active");
+      }
+    });
+
+    uploadArea.addEventListener("drop", (event) => {
+      event.preventDefault();
+      uploadArea.classList.remove("drag-active");
+      const file = event.dataTransfer.files[0];
+      if (file) {
+        handleNewFile(file);
+      }
+    });
+
+    /**
+     * Store the selected file, show a preview, and enable the Scan button.
+     */
+    function handleNewFile(file) {
+      selectedFile = file;
+      hideError();
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const previewDataUrl = e.target.result;
+        imagePreview.src = previewDataUrl;
+        fileName.textContent = file.name;
+        fileSize.textContent = `${(file.size / 1024).toFixed(0)} KB`;
+        const tempImage = new Image();
+        tempImage.onload = () => {
+          fileResolution.textContent = `${tempImage.width} × ${tempImage.height}`;
+        };
+        tempImage.src = previewDataUrl;
+        previewWrapper.style.display = "block";
+
+        scanBtn.disabled = false;
+        clearBtn.disabled = false;
+        resultCard.style.display = "none";
+        dashboardPreview.src = previewDataUrl;
+        updateUploadSummary(file);
+        updateDashboard("Image ready", "Upload or scan a QR code to inspect its safety profile.");
+      };
+      reader.readAsDataURL(file);
+    }
+
+    /* ---------- Clear button ---------- */
+    clearBtn.addEventListener("click", resetForm);
+    scanAnotherBtn.addEventListener("click", resetForm);
+    startCameraBtn.addEventListener("click", startCameraScan);
+    stopCameraBtn.addEventListener("click", stopCamera);
+
+    function resetForm() {
+      selectedFile = null;
+      qrFileInput.value = "";
+      previewWrapper.style.display = "none";
+      imagePreview.src = "";
+      fileName.textContent = "";
+      fileSize.textContent = "";
+      fileResolution.textContent = "";
+      scanBtn.disabled = true;
+      clearBtn.disabled = true;
+      resultCard.style.display = "none";
+      stopCamera();
+      hideError();
+      hideCameraError();
+      dashboardPreview.src = "";
+      uploadSummaryCard.style.display = "none";
+      updateDashboard("Ready", "Scan a QR code to evaluate suspicious links, fake login patterns, and dangerous downloads.");
+    }
+
+    async function startCameraScan() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        showError("Your browser does not support camera access.");
+        return;
+      }
+
+      hideError();
+      loadingSpinner.style.display = "block";
+
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment" },
+          audio: false,
+        });
+
+        cameraFeed.srcObject = stream;
+        await cameraFeed.play();
+        cameraFeed.style.display = "block";
+        scanOverlay.style.display = "flex";
+        const cameraErrEl = document.getElementById("cameraError");
+        if (cameraErrEl) cameraErrEl.style.display = "none";
+        startCameraBtn.disabled = true;
+        stopCameraBtn.disabled = false;
+        lastCameraDecoded = "";
+        loadingSpinner.style.display = "none";
+        updateCameraStatus(true);
+        beginCameraScanning();
+      } catch (err) {
+        loadingSpinner.style.display = "none";
+          showCameraError("Camera access was denied or unavailable. Please allow camera permission and try again.");
+      }
+    }
+
+    function stopCamera() {
+      if (cameraScanFrameId) {
+        cancelAnimationFrame(cameraScanFrameId);
+        cameraScanFrameId = null;
+      }
+
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+        stream = null;
+      }
+
+      if (cameraFeed) {
+        cameraFeed.pause();
+        cameraFeed.srcObject = null;
+      }
+
+      cameraScanning = false;
+      cameraFeed.style.display = "none";
+      scanOverlay.style.display = "none";
+      const cameraErrEl = document.getElementById("cameraError");
+      if (cameraErrEl) cameraErrEl.style.display = "none";
+      startCameraBtn.disabled = false;
+      stopCameraBtn.disabled = true;
+      loadingSpinner.style.display = "none";
+      updateCameraStatus(false);
+    }
+
+    function updateCameraStatus(active) {
+      liveIndicator.classList.toggle("is-active", active);
+      const liveText = liveIndicator.querySelector(".live-text");
+      liveText.textContent = active ? "Live scan active" : "Camera ready";
+      scanOverlay.classList.toggle("is-scanning", active);
+    }
+
+    function beginCameraScanning() {
+      if (cameraScanning) return;
+      cameraScanning = true;
+
+      const scanFrame = () => {
+        if (!cameraScanning || !stream || cameraFeed.readyState < 2) {
+          cameraScanFrameId = requestAnimationFrame(scanFrame);
+          return;
+        }
+
+        const width = cameraFeed.videoWidth;
+        const height = cameraFeed.videoHeight;
+
+        if (!width || !height) {
+          cameraScanFrameId = requestAnimationFrame(scanFrame);
+          return;
+        }
+
+        cameraCanvas.width = width;
+        cameraCanvas.height = height;
+        const ctx = cameraCanvas.getContext("2d");
+        ctx.drawImage(cameraFeed, 0, 0, width, height);
+
+        const imageData = ctx.getImageData(0, 0, width, height);
+        const qrCode = jsQR(imageData.data, width, height);
+
+        if (qrCode && qrCode.data) {
+          const decodedText = qrCode.data.trim();
+          if (decodedText && decodedText !== lastCameraDecoded) {
+            lastCameraDecoded = decodedText;
+            cameraScanning = false;
+            if (cameraScanFrameId) {
+              cancelAnimationFrame(cameraScanFrameId);
+              cameraScanFrameId = null;
+            }
+            stopCamera();
+            handleDecodedContent(decodedText);
+            return;
+          }
+        }
+
+        if (cameraScanning) {
+          cameraScanFrameId = requestAnimationFrame(scanFrame);
+        }
+      };
+
+      cameraScanFrameId = requestAnimationFrame(scanFrame);
+    }
+
+    function handleDecodedContent(decodedText) {
+      const data = analyzeContent(decodedText.trim());
+      displayResults(data);
+      updateDashboard(data.status, data.recommendation);
+    }
+
+    /* ---------- Scan button ---------- */
+    scanBtn.addEventListener("click", async () => {
+      if (!selectedFile) {
+        showError("No image selected.");
+        return;
+      }
+
+      hideError();
+      resultCard.style.display = "none";
+      loadingSpinner.style.display = "block";
+      scanBtn.disabled = true;
+
+      try {
+        const decodedText = await decodeQrFromImage(imagePreview);
+        const data = analyzeContent(decodedText.trim());
+        displayResults(data);
+        updateDashboard(data.status, data.recommendation);
+      } catch (err) {
+        loadingSpinner.style.display = "none";
+        scanBtn.disabled = false;
+
+        if (err instanceof Error && err.message === "decode-failed") {
+          showError("Unable to decode the QR code locally. Please try a clearer image.");
+          updateDashboard("Needs attention", "The QR code could not be read clearly. Try a sharper image or the camera scan option.");
+          return;
+        }
+
+        // Fallback to server scan if available
+        try {
+          const formData = new FormData();
+          formData.append("qr_image", selectedFile);
+          const response = await fetch("/scan", {
+            method: "POST",
+            body: formData,
+          });
+          const result = await response.json();
+
+          loadingSpinner.style.display = "none";
+          scanBtn.disabled = false;
+
+          if (!response.ok) {
+            const message = result.reason || result.error || "Something went wrong.";
+            showError(message);
+            updateDashboard("Needs attention", message);
+            return;
+          }
+
+          displayResults(result);
+          updateDashboard(result.status, result.recommendation);
+        } catch (serverErr) {
+          showError("Could not reach the server. Please try again.");
+          updateDashboard("Needs attention", "The server could not be reached. Try again or use the local camera scan.");
+        }
+      } finally {
+        loadingSpinner.style.display = "none";
+        scanBtn.disabled = false;
+      }
+    });
+
+    async function decodeQrFromImage(img) {
+      return new Promise((resolve, reject) => {
+        if (!window.jsQR) {
+          reject(new Error("qr-library-missing"));
+          return;
+        }
+
+        const image = new Image();
+        image.crossOrigin = "anonymous";
+        image.onload = () => {
+          hiddenCanvas.width = image.naturalWidth;
+          hiddenCanvas.height = image.naturalHeight;
+          hiddenContext.drawImage(image, 0, 0);
+          const imageData = hiddenContext.getImageData(0, 0, hiddenCanvas.width, hiddenCanvas.height);
+          const qrCode = jsQR(imageData.data, imageData.width, imageData.height);
+
+          if (!qrCode || !qrCode.data) {
+            reject(new Error("decode-failed"));
+          } else {
+            resolve(qrCode.data);
+          }
+        };
+        image.onerror = () => reject(new Error("decode-failed"));
+        image.src = img.src;
+      });
+    }
+
+    function analyzeContent(data) {
+      const sanitizedData = data || "";
+      const lowerData = sanitizedData.toLowerCase();
+      let score = 0;
+      let detectedUrl = null;
+      let qrType = "Plain Text";
+      const reasons = [];
+
+      if (lowerData.startsWith("wifi:")) {
+        qrType = "WiFi";
+      } else if (lowerData.startsWith("mailto:")) {
+        qrType = "Email";
+      } else if (lowerData.startsWith("tel:")) {
+        qrType = "Phone Number";
+      } else if (lowerData.startsWith("smsto:") || lowerData.startsWith("sms:")) {
+        qrType = "SMS";
+      } else if (lowerData.startsWith("begin:vcard")) {
+        qrType = "Contact Card";
+      } else if (lowerData.startsWith("http://") || lowerData.startsWith("https://")) {
+        qrType = "URL";
+      }
+
+      if (qrType === "URL") {
+        detectedUrl = sanitizedData;
+        const url = sanitizedData;
+
+        if (url.toLowerCase().startsWith("http://")) {
+          score += 10;
+          reasons.push("Link uses insecure HTTP instead of HTTPS (+10)");
+        } else {
+          reasons.push("Link uses secure HTTPS (+0)");
+        }
+
+        if (URL_SHORTENERS.some((shortener) => url.toLowerCase().includes(shortener))) {
+          score += 25;
+          reasons.push("Link uses a URL shortening service, real destination is hidden (+25)");
+        }
+
+        if (/https?:\/\/(\d{1,3}\.){3}\d{1,3}/.test(url)) {
+          score += 30;
+          reasons.push("Link points directly to an IP address instead of a domain (+30)");
+        }
+
+        const exeHits = EXECUTABLE_EXTENSIONS.filter((ext) => url.toLowerCase().endsWith(ext));
+        if (exeHits.length) {
+          score += 40;
+          reasons.push(`Link points to a potentially dangerous file type: ${exeHits.join(", ")} (+40)`);
+        }
+
+        if (url.length > 75) {
+          score += 15;
+          reasons.push("Link is unusually long (+15)");
+        }
+
+        const specialCount = (url.match(/[^a-zA-Z0-9:/._-]/g) || []).length;
+        if (specialCount > 5) {
+          score += 10;
+          reasons.push(`Link contains ${specialCount} unusual special characters (+10)`);
+        }
+
+        const pathMatch = url.match(/https?:\/\/[^/]+\/([^\s?#]+)/);
+        if (pathMatch) {
+          const chunks = pathMatch[1].split(/[/\-_.]/);
+          const randomChunk = chunks.find((chunk) => {
+            if (chunk.length < 12) return false;
+            const vowels = [...chunk.toLowerCase()].filter((c) => "aeiou".includes(c)).length;
+            return vowels / Math.max(chunk.length, 1) < 0.15;
+          });
+          if (randomChunk) {
+            score += 10;
+            reasons.push("Link contains a random-looking generated string (+10)");
+          }
+        }
+
+        const keywordHits = FAKE_LOGIN_KEYWORDS.filter((word) => url.toLowerCase().includes(word));
+        if (keywordHits.length) {
+          score += 20;
+          reasons.push(`Link contains suspicious keywords: ${keywordHits.join(", ")} (+20)`);
+        }
+      } else {
+        reasons.push(`QR code contains ${qrType} data, not a direct web link (+0)`);
+      }
+
+      const status = score <= 20 ? "Safe" : score <= 50 ? "Suspicious" : "Malicious";
+      const threatLevel = score <= 20 ? "Low" : score <= 50 ? "Medium" : "High";
+      const recommendation = score <= 20 ? "This QR code appears safe." : score <= 50 ? "Proceed carefully before opening." : "Do NOT open this QR code.";
+
+      return {
+        decoded_content: sanitizedData,
+        detected_url: detectedUrl,
+        qr_type: qrType,
+        risk_score: score,
+        status,
+        threat_level: threatLevel,
+        reasons,
+        recommendation,
+      };
+    }
+
+    /**
+     * Populate the result card with data returned from the backend
+     * and apply the correct color theme based on the safety status.
+     */
+    function displayResults(data) {
+      qrType.textContent = data.qr_type;
+      riskScore.textContent = data.risk_score;
+      threatLevel.textContent = data.threat_level;
+      decodedContent.textContent = data.decoded_content;
+      recommendation.textContent = data.recommendation;
+
+      if (data.detected_url) {
+        detectedUrl.textContent = data.detected_url;
+        detectedUrlRow.style.display = "flex";
+      } else {
+        detectedUrlRow.style.display = "none";
+      }
+
+      reasonList.innerHTML = "";
+      data.reasons.forEach((reason) => {
+        const li = document.createElement("li");
+        li.textContent = reason;
+        reasonList.appendChild(li);
+      });
+
+      statusText.textContent = data.status;
+      statusBanner.className = "status-banner";
+      statusBadge.className = "threat-badge";
+
+      if (data.status === "Safe") {
+        statusBanner.classList.add("status-safe");
+        statusBadge.classList.add("threat-safe");
+        statusBadge.textContent = "🟢 SAFE";
+      } else if (data.status === "Suspicious") {
+        statusBanner.classList.add("status-suspicious");
+        statusBadge.classList.add("threat-suspicious");
+        statusBadge.textContent = "🟡 SUSPICIOUS";
+      } else {
+        statusBanner.classList.add("status-malicious");
+        statusBadge.classList.add("threat-malicious");
+        statusBadge.textContent = "🔴 MALICIOUS";
+      }
+
+      resultCard.style.display = "block";
+      resultCard.scrollIntoView({ behavior: "smooth" });
+    }
+
+    function updateUploadSummary(file) {
+      if (!file) {
+        uploadSummaryCard.style.display = "none";
+        return;
+      }
+
+      const sizeInKB = (file.size / 1024).toFixed(0);
+      uploadFilename.textContent = file.name || "-";
+      uploadSize.textContent = `${sizeInKB} KB`;
+      uploadSummaryCard.style.display = "block";
+
+      const previewImage = new Image();
+      previewImage.onload = () => {
+        uploadResolution.textContent = `${previewImage.width} × ${previewImage.height}`;
+      };
+      previewImage.src = dashboardPreview.src;
+    }
+
+    function updateDashboard(status, insight) {
+      dashboardInsight.textContent = insight || "Scan a QR code to evaluate suspicious links, fake login patterns, and dangerous downloads.";
+      checkUrl.textContent = status === "Safe" ? "Passed" : status === "Suspicious" ? "Review" : status === "Malicious" ? "Blocked" : "Waiting";
+      checkPhish.textContent = status === "Safe" ? "Clean" : status === "Suspicious" ? "Flags Raised" : status === "Malicious" ? "Threat Detected" : "Waiting";
+      checkFiles.textContent = status === "Malicious" ? "Dangerous" : status === "Suspicious" ? "Possible" : "Clear";
+
+      let percent = 0;
+      let label = "No scan performed yet.";
+      if (status === "Safe") {
+        percent = 15;
+        label = "Low risk detected.";
+      } else if (status === "Suspicious") {
+        percent = 60;
+        label = "Moderate risk. Review before opening.";
+      } else if (status === "Malicious") {
+        percent = 100;
+        label = "High risk. Avoid opening this QR code.";
+      }
+
+      riskMeterValue.textContent = `${percent}%`;
+      riskMeterFill.style.width = `${percent}%`;
+      riskMeterText.textContent = label;
+    }
+
+    /* ---------- Error helper functions ---------- */
+    function showError(message) {
+      errorBox.textContent = message;
+      errorBox.style.display = "block";
+    }
+
+    function hideError() {
+      errorBox.textContent = "";
+      errorBox.style.display = "none";
+    }
+
+    function showCameraError(message) {
+      const el = document.getElementById("cameraError");
+      if (el) {
+        el.textContent = message;
+        el.style.display = "block";
+      } else {
+        showError(message);
+      }
+    }
+
+    function hideCameraError() {
+      const el = document.getElementById("cameraError");
+      if (el) {
+        el.textContent = "";
+        el.style.display = "none";
+      }
+    }
+  </script>
+</body>
+</html> 
