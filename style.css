@@ -648,11 +648,11 @@ body.theme-dark .intro-card {
 .camera-instruction {
   display: inline-block;
   margin-bottom: 10px;
-  background: linear-gradient(135deg, #67e8f9, #60a5fa);
-  color: #082f49;
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  font-weight: 800;
-  box-shadow: 0 5px 18px rgba(14, 165, 233, 0.35);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--text-muted);
+  border: 1px solid var(--gray-border);
+  font-weight: 600;
+  box-shadow: 0 3px 12px rgba(11, 31, 58, 0.1);
 }
 
 .live-indicator {
