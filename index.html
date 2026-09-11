@@ -199,10 +199,6 @@
           <span class="result-label">Threat Level</span>
           <span class="result-value" id="threatLevel">-</span>
         </div>
-        <div class="result-item full-width">
-          <span class="result-label">Decoded Content</span>
-          <span class="result-value break-text" id="decodedContent">-</span>
-        </div>
         <div class="result-item full-width" id="detectedUrlRow">
           <span class="result-label">Detected URL</span>
           <span class="result-value break-text" id="detectedUrl">-</span>
@@ -227,43 +223,6 @@
   <!-- ===================== SCRIPT ===================== -->
   <!-- All frontend logic lives here inline (no separate script.js file) -->
   <script>
-    const themeToggle = document.getElementById("themeToggle");
-
-    function applyTheme(theme) {
-      document.body.classList.toggle("theme-dark", theme === "dark");
-      document.body.classList.toggle("theme-light", theme === "light");
-
-      if (themeToggle) {
-        const isDark = theme === "dark";
-        themeToggle.innerHTML = `<span class="theme-toggle-icon">${isDark ? "☀" : "🌙"}</span><span class="theme-toggle-text">${isDark ? "Light Mode" : "Dark Mode"}</span>`;
-        themeToggle.setAttribute("aria-pressed", String(isDark));
-      }
-
-      localStorage.setItem("qrshield-theme", theme);
-    }
-
-    const savedTheme = localStorage.getItem("qrshield-theme");
-    const preferredTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-    applyTheme(savedTheme || preferredTheme);
-
-    if (themeToggle) {
-      themeToggle.addEventListener("click", () => {
-        const nextTheme = document.body.classList.contains("theme-dark") ? "light" : "dark";
-        applyTheme(nextTheme);
-      });
-    }
-
-    const passwordToggle = document.getElementById("passwordToggle");
-    const loginPassword = document.getElementById("loginPassword");
-
-    if (passwordToggle && loginPassword) {
-      passwordToggle.addEventListener("click", () => {
-        const isHidden = loginPassword.type === "password";
-        loginPassword.type = isHidden ? "text" : "password";
-        passwordToggle.textContent = isHidden ? "Hide" : "Show";
-      });
-    }
-
     /* ---------- Grab all the elements we need ---------- */
     const qrFileInput = document.getElementById("qrFileInput");
     const uploadArea = document.getElementById("uploadArea");
@@ -292,7 +251,6 @@
     const qrType = document.getElementById("qrType");
     const riskScore = document.getElementById("riskScore");
     const threatLevel = document.getElementById("threatLevel");
-    const decodedContent = document.getElementById("decodedContent");
     const detectedUrl = document.getElementById("detectedUrl");
     const detectedUrlRow = document.getElementById("detectedUrlRow");
     const reasonList = document.getElementById("reasonList");
@@ -305,12 +263,6 @@
     const riskMeterValue = document.getElementById("riskMeterValue");
     const riskMeterFill = document.getElementById("riskMeterFill");
     const riskMeterText = document.getElementById("riskMeterText");
-    const dashboardPreview = document.getElementById("dashboardPreview");
-    const uploadSummaryCard = document.getElementById("uploadSummaryCard");
-    const uploadFilename = document.getElementById("uploadFilename");
-    const uploadResolution = document.getElementById("uploadResolution");
-    const uploadSize = document.getElementById("uploadSize");
-
     let selectedFile = null;
     let stream = null;
     let cameraScanFrameId = null;
@@ -388,8 +340,6 @@
         scanBtn.disabled = false;
         clearBtn.disabled = false;
         resultCard.style.display = "none";
-        dashboardPreview.src = previewDataUrl;
-        updateUploadSummary(file);
         updateDashboard("Image ready", "Upload or scan a QR code to inspect its safety profile.");
       };
       reader.readAsDataURL(file);
@@ -415,8 +365,6 @@
       stopCamera();
       hideError();
       hideCameraError();
-      dashboardPreview.src = "";
-      uploadSummaryCard.style.display = "none";
       updateDashboard("Ready", "Scan a QR code to evaluate suspicious links, fake login patterns, and dangerous downloads.");
     }
 
@@ -735,7 +683,6 @@
       qrType.textContent = data.qr_type;
       riskScore.textContent = data.risk_score;
       threatLevel.textContent = data.threat_level;
-      decodedContent.textContent = data.decoded_content;
       recommendation.textContent = data.recommendation;
 
       if (data.detected_url) {
@@ -772,24 +719,6 @@
 
       resultCard.style.display = "block";
       resultCard.scrollIntoView({ behavior: "smooth" });
-    }
-
-    function updateUploadSummary(file) {
-      if (!file) {
-        uploadSummaryCard.style.display = "none";
-        return;
-      }
-
-      const sizeInKB = (file.size / 1024).toFixed(0);
-      uploadFilename.textContent = file.name || "-";
-      uploadSize.textContent = `${sizeInKB} KB`;
-      uploadSummaryCard.style.display = "block";
-
-      const previewImage = new Image();
-      previewImage.onload = () => {
-        uploadResolution.textContent = `${previewImage.width} × ${previewImage.height}`;
-      };
-      previewImage.src = dashboardPreview.src;
     }
 
     function updateDashboard(status, insight) {

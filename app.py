@@ -1,15 +1,8 @@
-"""
-QRShield - Offline QR Code Safety Scanner
--------------------------------------------
-data.py
+"""QRShield backend.
 
-This single file contains the entire backend:
-1. Flask app setup (serves index.html and style.css from this same folder)
-2. Offline QR code decoding (OpenCV + pyzbar)
-3. Rule-based offline security analysis
-4. The /scan route that ties it all together and returns JSON
-
-Everything runs 100% locally. No external API calls are made.
+This app serves the frontend, decodes QR codes locally, and checks
+URLs for common phishing and malware indicators without sending data
+anywhere external.
 """
 
 import os
@@ -51,14 +44,36 @@ ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "bmp", "webp"}
 
 
 def allowed_file(filename):
-    """Check if the uploaded file has an allowed image extension."""
+    """Return True when the uploaded file is a supported image type."""
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def build_error_response(message, reason=None, status_code=400):
+    """Create a consistent JSON error response."""
+    payload = {"error": message}
+    if reason:
+        payload["reason"] = reason
+    return jsonify(payload), status_code
+
+
+def load_image_from_path(filepath):
+    """Read an uploaded image from disk using OpenCV or Pillow."""
+    if cv2 is not None:
+        image = cv2.imread(filepath)
+        if image is not None:
+            return image
+
+    if Image is not None:
+        try:
+            return Image.open(filepath)
+        except Exception:
+            return None
+
+    return None
 
 
 # ------------------------------------------------------------------
 # Lists used for rule-based offline analysis
-# (No internet / API lookups - everything is checked against these
-# fixed lists using simple Python string logic.)
 # ------------------------------------------------------------------
 
 # Common URL shortener domains often abused to hide the real destination
@@ -261,74 +276,59 @@ def home():
 
 @app.route("/scan", methods=["POST"])
 def scan():
-    """
-    Receive an uploaded QR image, decode it offline, analyze it,
-    and return the results as JSON.
-    """
+    """Upload a QR image, decode it locally, and return the risk analysis."""
     try:
         if "qr_image" not in request.files:
-            return jsonify({"error": "No image uploaded."}), 400
+            return build_error_response("No image uploaded.")
 
-        file = request.files["qr_image"]
+        uploaded_file = request.files["qr_image"]
 
-        if file.filename == "":
-            return jsonify({"error": "No image selected."}), 400
+        if uploaded_file.filename == "":
+            return build_error_response("No image selected.")
 
-        if not allowed_file(file.filename):
-            return jsonify({"error": "Unsupported file type. Please upload a PNG or JPG image."}), 400
+        if not allowed_file(uploaded_file.filename):
+            return build_error_response(
+                "Unsupported file type. Please upload a PNG or JPG image."
+            )
 
-        filename = secure_filename(file.filename)
+        filename = secure_filename(uploaded_file.filename)
         filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-        file.save(filepath)
+        uploaded_file.save(filepath)
 
-        image = None
-        if cv2 is not None:
-            image = cv2.imread(filepath)
+        try:
+            image = load_image_from_path(filepath)
 
-        if image is None and Image is not None:
-            try:
-                image = Image.open(filepath)
-            except Exception:
-                image = None
+            if image is None:
+                if cv2 is None and Image is None:
+                    return build_error_response(
+                        "Server missing image library.",
+                        "Install opencv-python or Pillow.",
+                        500,
+                    )
+                return build_error_response("Invalid QR Code", "Cannot decode image.")
 
-        if image is None:
-            os.remove(filepath)
-            if cv2 is None and Image is None:
-                return jsonify(
-                    {
-                        "error": "Server missing image library.",
-                        "reason": "Install opencv-python or Pillow.",
-                    }
-                ), 500
-            return jsonify({"error": "Invalid QR Code", "reason": "Cannot decode image."}), 400
+            if pyzbar_decode is None:
+                return build_error_response(
+                    "QR decoding library unavailable.",
+                    "Install pyzbar and its native libraries to decode uploaded images on the server.",
+                    500,
+                )
 
-        if pyzbar_decode is None:
-            os.remove(filepath)
-            return jsonify(
-                {
-                    "error": "QR decoding library unavailable.",
-                    "reason": "Install pyzbar and its native libraries to decode uploaded images on the server.",
-                }
-            ), 500
+            decoded_objects = pyzbar_decode(image)
+            if not decoded_objects:
+                return build_error_response("Invalid QR Code", "Cannot decode image.")
 
-        decoded_objects = pyzbar_decode(image)
+            qr_data = decoded_objects[0].data.decode("utf-8", errors="ignore")
+            if not qr_data:
+                return build_error_response("Invalid QR Code", "Cannot decode image.")
 
-        os.remove(filepath)
+            return jsonify(analyze_content(qr_data)), 200
+        finally:
+            if os.path.exists(filepath):
+                os.remove(filepath)
 
-        if not decoded_objects:
-            return jsonify({"error": "Invalid QR Code", "reason": "Cannot decode image."}), 400
-
-        qr_data = decoded_objects[0].data.decode("utf-8", errors="ignore")
-
-        if not qr_data:
-            return jsonify({"error": "Invalid QR Code", "reason": "Cannot decode image."}), 400
-
-        result = analyze_content(qr_data)
-
-        return jsonify(result), 200
-
-    except Exception as e:
-        return jsonify({"error": "Something went wrong on the server.", "reason": str(e)}), 500
+    except Exception as exc:
+        return build_error_response("Something went wrong on the server.", str(exc), 500)
 
 
 # ------------------------------------------------------------------
